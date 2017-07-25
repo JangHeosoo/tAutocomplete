@@ -1,0 +1,25 @@
+{
+  "name": "tAutocomplete",
+  "homepage": "https://github.com/SHENG-KRS/tAutocomplete",
+  "authors": [
+    "chh170403 <chh170403@sheng-krs.com>"
+  ],
+  "description": "An autocomplete in the form of table",
+  "main": [
+    "tautocomplete.js",
+    "tautocomplete.css"
+  ],
+  "keywords": [
+    "autocomplete",
+    "table",
+    "jquery"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
