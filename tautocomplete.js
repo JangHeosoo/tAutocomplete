@@ -374,7 +374,8 @@
                 el.ddTextbox.removeClass("loading");
 
                 // remove all rows from the table
-                el.ddTable.find("tbody").find("tr").remove();
+                // el.ddTable.find("tbody").find("tr").remove();
+                el.ddTable.find("tbody").remove();
 
                 // regular expression for word highlight
                 var re = null;
@@ -413,7 +414,9 @@
                             j++;
                         }
                         // append row to the table
-                        el.ddTable.append("<tr>" + row + "</tr>");
+                        // el.ddTable.append("<tr>" + row + "</tr>");
+                        if(i===0){el.ddTable.append("<tbody></tbody>");}
+                        el.ddTable.find('tbody').append("<tr>" + row + "</tr>");
                     }
                 }
                 // show no records exists
