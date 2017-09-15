@@ -1,38 +1,42 @@
 (function ($) {
-    "use strict";
+    'use strict';
 
-    $.fn.tautocomplete = function (options, callback) {
+    $.fn.tautocomplete = function (options) {
 
         // default parameters
         var settings = $.extend({
-            width: "500px",
+            width: '30vw',
             columns: [],
-            hide: [false],
             onchange: null,
-            norecord: "No Records Found",
+            norecord: 'No Records Found',
             dataproperty: null,
-            regex: "^[a-zA-Z0-9\b]+$",
+            regex: '^[a-zA-Z0-9\b]+$',
             data: null,
             placeholder: null,
-            theme: "default",
+            theme: 'default',
             ajax: null,
             delay: 1000,
-            highlight:'word-highlight'
+            highlight:'word-highlight',
+            translator: null,
+            idField: null,
+            textField: null
         }, options);
 
         var cssClass = {
-            "default": "adropdown", 
-            "classic": "aclassic",
-            "white": "awhite"};
+            'default': 'adropdown',
+            'classic': 'aclassic',
+            'white': 'awhite'};
 
         settings.theme = cssClass[settings.theme];
+        settings.idField = settings.idField || settings.columns[0].field;
+        settings.textField = settings.textField || (settings.columns.length > 1 ? settings.columns[1].field: settings.columns[0].field);
         
         // initialize DOM elements
         var el = {
-            ddDiv: $("<div>", { class: settings.theme }),
-            ddTable: $("<table></table>", { style: "width:" + settings.width }),
-            ddTableCaption: $("<caption>" + settings.norecord + "</caption>"),
-            ddTextbox: $("<input type='text'>")
+            ddDiv: $('<div>', { class: settings.theme }),
+            ddTable: $('<table></table>', { style: 'width:' + settings.width }),
+            ddTableCaption: $('<caption>' + settings.norecord + '</caption>'),
+            ddTextbox: $('<input type="text">')
         };
 
         var keys = {
@@ -44,17 +48,17 @@
         };
 
         var errors = {
-            columnNA: "Error: Columns Not Defined",
-            dataNA: "Error: Data Not Available"
+            columnNA: 'Error: Columns Not Defined',
+            dataNA: 'Error: Data Not Available'
         };
         
         // plugin properties
         var tautocomplete = {
             id: function () {
-                return el.ddTextbox.data("id");
+                return el.ddTextbox.data('id');
             },
             text: function () {
-                return el.ddTextbox.data("text");
+                return el.ddTextbox.data('text');
             },
             searchdata: function () {
                 return el.ddTextbox.val();
@@ -63,10 +67,7 @@
                 el.ddTextbox.val(text);
             },
             isNull: function () {
-                if (el.ddTextbox.data("text") == "" || el.ddTextbox.data("text") == null)
-                    return true;
-                else
-                    return false;
+                return !el.ddTextbox.data('text');
             },
             all: function(){
                 return selectedData;
@@ -98,21 +99,21 @@
         var orginalTextBox = this;
 
         // wrap the div for style
-        this.wrap("<div class='acontainer'></div>");
+        this.wrap('<div class="acontainer"></div>');
 
         // create a textbox for input
         this.after(el.ddTextbox);
-        el.ddTextbox.attr("autocomplete", "off");
-        el.ddTextbox.css("width", this.width + "px"); 
-        el.ddTextbox.css("font-size", this.css("font-size"));
-        el.ddTextbox.attr("placeholder", settings.placeholder);
+        el.ddTextbox.attr('autocomplete', 'off');
+        el.ddTextbox.css('width', this.width + 'px');
+        el.ddTextbox.css('font-size', this.css('font-size'));
+        el.ddTextbox.attr('placeholder', settings.placeholder);
 
         // check for mandatory parameters
-        if (settings.columns == "" || settings.columns == null) {
-            el.ddTextbox.attr("placeholder", errors.columnNA);
+        if (!settings.columns) {
+            el.ddTextbox.attr('placeholder', errors.columnNA);
         }
-        else if ((settings.data == "" || settings.data == null) && settings.ajax == null) {
-            el.ddTextbox.attr("placeholder", errors.dataNA);
+        else if (!settings.data && !settings.ajax) {
+            el.ddTextbox.attr('placeholder', errors.dataNA);
         }
         
         // append div after the textbox
@@ -123,31 +124,46 @@
 
         // append table after the new textbox
         el.ddDiv.append(el.ddTable);
-        el.ddTable.attr("cellspacing", "0");
+        el.ddTable.attr('cellspacing', '0');
 
         // append table caption
         el.ddTable.append(el.ddTableCaption);
 
         // create table columns
-        var header = "<thead><tr>";
-        for (var i = 0; i <= cols - 1; i++) {
-            header = header + "<th>" + settings.columns[i] + "</th>"
+        var $thead = $('<thead><tr></tr></thead>'),
+           $tr = $thead.find('tr'),
+           $th;
+
+        for (var i = 0; i < cols; i++) {
+            if($.isFunction(settings.translator)){
+               (function (idx) {
+                  settings.translator(settings.columns[idx].name)
+                     .then(function(title){
+                        $th = $('<th>' + title + '</th>');
+                        settings.columns[idx].hide && $th.hide();
+                        $tr.append($th);
+                     })
+               })(i);
+            }else{
+               $th = $('<th>' + settings.columns[i].name + '</th>');
+               settings.columns[i].hide && $th.hide();
+               $tr.append($th);
+            }
         }
-        header = header + "</thead></tr>"
-        el.ddTable.append(header);
+        el.ddTable.append($thead);
 
         // assign data fields to the textbox, helpful in case of .net postbacks
         {
-            var id = "", text = "";
+            var id = '', text = '';
 
-            if (this.val() != "") {
-                var val = this.val().split("#$#");
+            if (this.val()) {
+                var val = this.val().split('#$#');
                 id = val[0];
                 text = val[1];
             }
 
-            el.ddTextbox.attr("data-id", id);
-            el.ddTextbox.attr("data-text", text);
+            el.ddTextbox.attr('data-id', id);
+            el.ddTextbox.attr('data-text', text);
             el.ddTextbox.val(text);
         }
 
@@ -173,17 +189,17 @@
         // process input
         function processInput()
         {
-            if (el.ddTextbox.val() == "") {
-                    hideDropDown();
-                    return;
+            if (!el.ddTextbox.val()) {
+                 hideDropDown();
+                 return;
             }
 
             // hide no record found message
             el.ddTableCaption.hide();
 
-            el.ddTextbox.addClass("loading");
+            el.ddTextbox.addClass('loading');
 
-            if (settings.ajax != null)
+            if (settings.ajax)
             {
                 var tempData = null;
                 if ($.isFunction(settings.ajax.data)) {
@@ -202,7 +218,7 @@
                     url: settings.ajax.url,
                     success: ajaxData,
                     error: function (xhr, ajaxOptions, thrownError) {
-                        el.ddTextbox.removeClass("loading");
+                        el.ddTextbox.removeClass('loading');
                         alert('Error: ' + xhr.status || ' - ' || thrownError);
                     }
                 });
@@ -220,16 +236,12 @@
         // call on Ajax success
         function ajaxData(jsonData)
         {
-            if (settings.ajax.success == null || settings.ajax.success == "" || (typeof settings.ajax.success === "undefined"))
-            {
+             if ($.isFunction(settings.ajax.success)) {
+                 var data = settings.ajax.success.call(this, jsonData);
+                 jsonParser(data);
+             }else{
                 jsonParser(jsonData);
-            }
-            else {
-                if ($.isFunction(settings.ajax.success)) {
-                    var data = settings.ajax.success.call(this, jsonData);
-                    jsonParser(data);
-                }
-            }
+             }
         }
 
         // do not allow special characters
@@ -246,36 +258,36 @@
         // textbox keypress events (return key, up and down arrow)
         el.ddTextbox.keydown(function (e) {
 
-            var tbody = el.ddTable.find("tbody");
-            var selected = tbody.find(".selected");
+            var tbody = el.ddTable.find('tbody');
+            var selected = tbody.find('.selected');
 
             if (e.keyCode == keys.ENTER) {
                 e.preventDefault();
                 select();
             }
             if (e.keyCode == keys.UP) {
-                el.ddTable.find(".selected").removeClass("selected");
+                el.ddTable.find('.selected').removeClass('selected');
                 if (selected.prev().length == 0) {
-                    tbody.find("tr:last").addClass("selected");
+                    tbody.find('tr:last').addClass('selected');
                 } else {
-                    selected.prev().addClass("selected");
+                    selected.prev().addClass('selected');
                 }
             }
             if (e.keyCode == keys.DOWN) {
-                tbody.find(".selected").removeClass("selected");
+                tbody.find('.selected').removeClass('selected');
                 if (selected.next().length == 0) {
-                    tbody.find("tr:first").addClass("selected");
+                    tbody.find('tr:first').addClass('selected');
                 } else {
-                    el.ddTable.find(".selected").removeClass("selected");
-                    selected.next().addClass("selected");
+                    el.ddTable.find('.selected').removeClass('selected');
+                    selected.next().addClass('selected');
                 }
             }
         });
 
         // row click event
-        el.ddTable.delegate("tr", "mousedown", function () {
-            el.ddTable.find(".selected").removeClass("selected");
-            $(this).addClass("selected");
+        el.ddTable.delegate('tr', 'mousedown', function () {
+            el.ddTable.find('.selected').removeClass('selected');
+            $(this).addClass('selected');
             select();
         });
 
@@ -283,34 +295,30 @@
         el.ddTextbox.focusout(function () {
             hideDropDown();
             // clear if the text value is invalid 
-            if ($(this).val() != $(this).data("text")) {
+            if ($(this).val() !== $(this).data('text')) {
 
-                var change = true;
-                if ($(this).data("text") == "") {
-                    change = false;
-                }
+                var change = !!$(this).data('text');
 
-                $(this).data("text", "");
-                $(this).data("id", "");
-                $(this).val("");
-                orginalTextBox.val("");
+                $(this).data('text', '');
+                $(this).data('id', '');
+                $(this).val('');
+                orginalTextBox.val('');
 
-                if (change) {
-                    onChange();
-                }
+                change && onChange();
             }
         });
 
         function select() {
 
-            var selected = el.ddTable.find("tbody").find(".selected");
+            var selected = el.ddTable.find('tbody').find('.selected'),
+               obj = selected.data('tvalue');
 
-            el.ddTextbox.data("id", selected.find('td').eq(0).text());
-            el.ddTextbox.data("text", selected.find('td').eq(1).text());
+            el.ddTextbox.data('id', selected.find('td').eq(0).text());
+            el.ddTextbox.data('text', selected.find('td').eq(1).text());
 
             for(var i=0; i < cols; i++)
             {
-                selectedData[settings.columns[i]] = selected.find('td').eq(i).text();
+                selectedData[settings.columns[i].field] = selected.find('td').eq(i).text();
             }
             
             el.ddTextbox.val(selected.find('td').eq(1).text());
@@ -333,32 +341,32 @@
 
         function hideDropDown() {
             el.ddTable.hide();
-            el.ddTextbox.removeClass("inputfocus");
-            el.ddDiv.removeClass("highlight");
+            el.ddTextbox.removeClass('inputfocus');
+            el.ddDiv.removeClass('highlight');
             el.ddTableCaption.hide();
         }
 
         function showDropDown() {
 
-            var cssTop = (el.ddTextbox.height() + 20) + "px 1px 0px 1px";
-            var cssBottom = "1px 1px " + (el.ddTextbox.height() + 20) + "px 1px";
+            var cssTop = (el.ddTextbox.height() + 20) + 'px 1px 0px 1px';
+            var cssBottom = '1px 1px ' + (el.ddTextbox.height() + 20) + 'px 1px';
 
             // reset div top, left and margin
-            el.ddDiv.css("top", "0px");
-            el.ddDiv.css("left", "0px");
-            el.ddTable.css("margin", cssTop);
+            el.ddDiv.css('top', '0px');
+            el.ddDiv.css('left', '0px');
+            el.ddTable.css('margin', cssTop);
 
-            el.ddTextbox.addClass("inputfocus");
-            el.ddDiv.addClass("highlight");
+            el.ddTextbox.addClass('inputfocus');
+            el.ddDiv.addClass('highlight');
             el.ddTable.show();
 
             // adjust div top according to the visibility
             if (!isDivHeightVisible(el.ddDiv)) {
-                el.ddDiv.css("top", -1 * (el.ddTable.height()) + "px");
-                el.ddTable.css("margin", cssBottom);
+                el.ddDiv.css('top', -1 * (el.ddTable.height()) + 'px');
+                el.ddTable.css('margin', cssBottom);
                 if (!isDivHeightVisible(el.ddDiv)) {
-                    el.ddDiv.css("top", "0px");
-                    el.ddTable.css("margin", cssTop);
+                    el.ddDiv.css('top', '0px');
+                    el.ddTable.css('margin', cssTop);
                     $('html, body').animate({
                         scrollTop: (el.ddDiv.offset().top - 60)
                     }, 250);
@@ -366,100 +374,76 @@
             }
             // adjust div left according to the visibility
             if (!isDivWidthVisible(el.ddDiv)) {
-                el.ddDiv.css("left", "-" + (el.ddTable.width() - el.ddTextbox.width() - 20) + "px");
+                el.ddDiv.css('left', '-' + (el.ddTable.width() - el.ddTextbox.width() - 20) + 'px');
             }
         }
         function jsonParser(jsonData) {
             try{
-                el.ddTextbox.removeClass("loading");
+                el.ddTextbox.removeClass('loading');
+                el.ddTable.find('tbody').remove();
 
-                // remove all rows from the table
-                // el.ddTable.find("tbody").find("tr").remove();
-                el.ddTable.find("tbody").remove();
+                var highlight = !!settings.highlight,
+                    re = new RegExp(el.ddTextbox.val(),'gi'),
+                    i = 0, j = 0,
+                    len = jsonData && jsonData.length ? jsonData.length: 0,
+                    cell, $tr, $td;
 
-                // regular expression for word highlight
-                var re = null;
-                if(settings.highlight != null){
-                    var highlight = true;
-                    var re = new RegExp(el.ddTextbox.val(),"gi");
-                }
+                 for (i = 0; i < len; i++) {
+                     // display only 15 rows of data
+                     if (i >= 15)
+                         break;
 
-                var i = 0, j = 0;
-                var row = null, cell = null;
-                if (jsonData != null) {
-                    for (i = 0; i < jsonData.length; i++) {
+                     var obj = jsonData[i];
+                     $tr = $('<tr></tr>');
 
-                        // display only 15 rows of data
-                        if (i >= 15)
-                            continue;
+                     for(j = 0; j < cols; j++){
+                         cell = obj[settings.columns[j].field] || '&nbsp;';
+                         cell += '';
+                         highlight && (cell = cell.replace(re, '<span class="' + settings.highlight + '">$&</span>'));
+                         $td = $('<td>' + cell + '</td>');
+                         settings.columns[j].hide && $td.hide();
+                         $tr.append($td);
+                     }
 
-                        var obj = jsonData[i];
-                        row = "";
-                        j = 0;
+                     if(i===0){el.ddTable.append('<tbody></tbody>');}
+                     $tr.data('tvalue', obj);
+                     el.ddTable.find('tbody').append($tr);
+                 }
 
-                        for (var key in obj) {
-
-                            // return on column count
-                            if (j <= cols) {
-                                cell = obj[key] + "";
-
-                                if(highlight){
-                                    cell = cell.replace(re,"<span class='" + settings.highlight + "'>$&</span>");
-                                }
-                                row = row + "<td>" + cell + "</td>";
-                            }
-                            else {
-                                continue;
-                            }
-                            j++;
-                        }
-                        // append row to the table
-                        // el.ddTable.append("<tr>" + row + "</tr>");
-                        if(i===0){el.ddTable.append("<tbody></tbody>");}
-                        el.ddTable.find('tbody').append("<tr>" + row + "</tr>");
-                    }
-                }
                 // show no records exists
-                if (i == 0)
-                    el.ddTableCaption.show();
+                len === 0 && el.ddTableCaption.show();
 
-                // hide columns
-                for(var i=0; (i< settings.hide.length) && (i< cols) ; i++)
-                {
-                    if(!settings.hide[i])
-                        el.ddTable.find('td:nth-child('+ (i+1) +')').hide();
-                }
-
-                el.ddTable.find("tbody").find("tr:first").addClass('selected');
+                el.ddTable.find('tbody').find('tr:first').addClass('selected');
                 showDropDown();
             }
             catch (e)
             {
-                alert("Error: " + e);
+                alert('Error: ' + e);
             }
         }
         return tautocomplete;
     };
-}(jQuery));
 
-function isDivHeightVisible(elem) {
-    var docViewTop = $(window).scrollTop();
-    var docViewBottom = docViewTop + $(window).height();
+   function isDivHeightVisible(elem) {
+      var docViewTop = $(window).scrollTop();
+      var docViewBottom = docViewTop + $(window).height();
 
-    var elemTop = $(elem).offset().top;
-    var elemBottom = elemTop + $(elem).height();
+      var elemTop = $(elem).offset().top;
+      var elemBottom = elemTop + $(elem).height();
 
-    return ((elemBottom >= docViewTop) && (elemTop <= docViewBottom)
+      return ((elemBottom >= docViewTop) && (elemTop <= docViewBottom)
       && (elemBottom <= docViewBottom) && (elemTop >= docViewTop));
-}
+   }
 
-function isDivWidthVisible(elem) {
-    var docViewLeft = $(window).scrollLeft();
-    var docViewRight = docViewLeft + $(window).width();
+   function isDivWidthVisible(elem) {
+      var docViewLeft = $(window).scrollLeft();
+      var docViewRight = docViewLeft + $(window).width();
 
-    var elemLeft = $(elem).offset().left;
-    var elemRight = elemLeft + $(elem).width();
+      var elemLeft = $(elem).offset().left;
+      var elemRight = elemLeft + $(elem).width();
 
-    return ((elemRight >= docViewLeft) && (elemLeft <= docViewRight)
+      return ((elemRight >= docViewLeft) && (elemLeft <= docViewRight)
       && (elemRight <= docViewRight) && (elemLeft >= docViewLeft));
-}
+   }
+
+}(jQuery));
