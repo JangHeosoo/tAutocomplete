@@ -17,9 +17,10 @@
                'column.country': '국가명',
                'column.capital': '수도'
             };
+            var $text2;
 
             $(document).ready(function () {
-                var text2 = $("#Text2").tautocomplete({
+                $text2 = $("#Text2").tautocomplete({
                     width: "30vw",
                     columns: [
                        {name: 'column.id', field: 'id', hide: true},
@@ -36,13 +37,13 @@
                         url: "sampledata.json",
                         type: "GET",
                         data: function () {
-                            return [{ test: text2.searchdata() }];
+                            return [{ test: this.searchdata() }];
                         },
                         success: function (data) {
                             
                             var filterData = [];
 
-                            var searchData = eval("/" + text2.searchdata() + "/gi");
+                            var searchData = eval("/" + this.searchdata() + "/gi");
 
                             $.each(data, function (i, v) {
                                 if (v.country.search(new RegExp(searchData)) != -1) {
@@ -53,9 +54,9 @@
                         }
                     },
                     onchange: function () {
-                       console.dir(text2.all());
-                        $("#ta-txt").html(text2.text());
-                        $("#ta-id").html(text2.id());
+                       console.dir(this.all());
+                        $("#ta-txt").html(this.text());
+                        $("#ta-id").html(this.id());
                     }
                 });
 

@@ -8,7 +8,6 @@
             width: '30vw',
             columns: [],
             onchange: null,
-            onready: null,
             norecord: 'No Records Found',
             regex: '^[a-zA-Z0-9\b]+$',
             data: null,
@@ -33,6 +32,7 @@
         
         // initialize DOM elements
         var el = {
+            $origin: this,
             $ddDiv: $('<div>', { class: settings.theme }),
             $ddTable: $('<table></table>', { style: 'width:' + settings.width }),
             $ddTableCaption: $('<caption>' + settings.norecord + '</caption>'),
@@ -75,6 +75,11 @@
             },
             all: function(){
                 return selectedData;
+            },
+            destroy: function(){
+               el.$ddTextbox.remove();
+               el.$ddDiv.remove();
+               el.$origin.unwrap();
             }
         };
 
@@ -184,7 +189,7 @@
             {
                 var tempData = null;
                 if ($.isFunction(settings.ajax.data)) {
-                    tempData = settings.ajax.data.call(this);
+                    tempData = settings.ajax.data.call(tautocomplete);
                 }
                 else{
                     tempData = settings.ajax.data;
@@ -205,7 +210,7 @@
                 });
             }
             else if ($.isFunction(settings.data)) {
-                var data = settings.data.call(this);
+                var data = settings.data.call(tautocomplete);
                 jsonParser(data);
             }
             else {
@@ -218,7 +223,7 @@
         function ajaxData(jsonData)
         {
              if ($.isFunction(settings.ajax.success)) {
-                 var data = settings.ajax.success.call(this, jsonData);
+                 var data = settings.ajax.success.call(tautocomplete, jsonData);
                  jsonParser(data);
              }else{
                 jsonParser(jsonData);
@@ -303,7 +308,7 @@
         {
             // onchange callback function
             if ($.isFunction(settings.onchange)) {
-                settings.onchange.call(this);
+                settings.onchange.call(tautocomplete);
             }
             else {
                 // default function for onchange
