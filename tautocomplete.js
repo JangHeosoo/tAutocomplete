@@ -54,18 +54,21 @@
         
         // plugin properties
         var tautocomplete = {
-            id: function () {
-                return selectedData[settings.idField];
+            id: function (val) {
+               if(val){
+                  $orginalTextBox.val(val);
+                  selectedData = selectedData || {};
+                  selectedData[settings.idField] = val;
+               }
+               return selectedData[settings.idField];
             },
-            text: function () {
-                return selectedData[settings.textField];
-            },
-            setValue: function(id, text){
-               el.$ddTextbox.val(text);
-               $orginalTextBox.val(id);
-               selectedData = {};
-               selectedData[settings.idField] = id;
-               selectedData[settings.textField] = text;
+            text: function (val) {
+               if(val){
+                  el.$ddTextbox.val(val);
+                  selectedData = selectedData || {};
+                  selectedData[settings.textField] = val;
+               }
+               return selectedData[settings.textField];
             },
             searchdata: function () {
                 return el.$ddTextbox.val();
@@ -155,7 +158,10 @@
        {
           var id = this.val(),
              text = this.data('text') || id;
-          id && el.$ddTextbox.val(text);
+          if(id){
+             tautocomplete.id(id);
+             tautocomplete.text(text);
+          }
        }
         focused && el.$ddTextbox.focus();
 
