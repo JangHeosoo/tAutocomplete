@@ -2,7 +2,8 @@
   "name": "tAutocomplete",
   "homepage": "https://github.com/SHENG-KRS/tAutocomplete",
   "authors": [
-    "chh170403 <chh170403@sheng-krs.com>"
+    "chh170403 <chh170403@sheng-krs.com>",
+    "Jongbok <asdkf20@naver.com>"
   ],
   "description": "An autocomplete in the form of table",
   "main": [

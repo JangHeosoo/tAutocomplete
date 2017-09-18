@@ -8,8 +8,8 @@
             width: '30vw',
             columns: [],
             onchange: null,
+            onready: null,
             norecord: 'No Records Found',
-            dataproperty: null,
             regex: '^[a-zA-Z0-9\b]+$',
             data: null,
             placeholder: null,
@@ -33,10 +33,10 @@
         
         // initialize DOM elements
         var el = {
-            ddDiv: $('<div>', { class: settings.theme }),
-            ddTable: $('<table></table>', { style: 'width:' + settings.width }),
-            ddTableCaption: $('<caption>' + settings.norecord + '</caption>'),
-            ddTextbox: $('<input type="text">')
+            $ddDiv: $('<div>', { class: settings.theme }),
+            $ddTable: $('<table></table>', { style: 'width:' + settings.width }),
+            $ddTableCaption: $('<caption>' + settings.norecord + '</caption>'),
+            $ddTextbox: $('<input type="text">')
         };
 
         var keys = {
@@ -55,19 +55,23 @@
         // plugin properties
         var tautocomplete = {
             id: function () {
-                return el.ddTextbox.data('id');
+                return selectedData[settings.idField];
             },
             text: function () {
-                return el.ddTextbox.data('text');
+                return selectedData[settings.textField];
+            },
+            setValue: function(id, text){
+               el.$ddTextbox.val(text);
+               $orginalTextBox.val(id);
+               selectedData = {};
+               selectedData[settings.idField] = id;
+               selectedData[settings.textField] = text;
             },
             searchdata: function () {
-                return el.ddTextbox.val();
-            },
-            settext: function (text) {
-                el.ddTextbox.val(text);
+                return el.$ddTextbox.val();
             },
             isNull: function () {
-                return !el.ddTextbox.data('text');
+                return !selectedData[settings.idField];
             },
             all: function(){
                 return selectedData;
@@ -83,51 +87,41 @@
             };
         })();
 
-        // key/value containing data of the selcted row
-        var selectedData = {};
-
-        var focused = false;
-
-        // check if the textbox is focused.
-        if (this.is(':focus')) {
-            focused = true;
-        }
-
-        // get number of columns
-        var cols = settings.columns.length;
-
-        var orginalTextBox = this;
+        var cols = settings.columns.length,
+           $orginalTextBox = this,
+           selectedData = {},
+           focused = this.is(':focus');
 
         // wrap the div for style
         this.wrap('<div class="acontainer"></div>');
 
         // create a textbox for input
-        this.after(el.ddTextbox);
-        el.ddTextbox.attr('autocomplete', 'off');
-        el.ddTextbox.css('width', this.width + 'px');
-        el.ddTextbox.css('font-size', this.css('font-size'));
-        el.ddTextbox.attr('placeholder', settings.placeholder);
+        this.after(el.$ddTextbox);
+        el.$ddTextbox.attr('autocomplete', 'off');
+        el.$ddTextbox.css('width', this.width + 'px');
+        el.$ddTextbox.css('font-size', this.css('font-size'));
+        el.$ddTextbox.attr('placeholder', settings.placeholder);
 
         // check for mandatory parameters
         if (!settings.columns) {
-            el.ddTextbox.attr('placeholder', errors.columnNA);
+            el.$ddTextbox.attr('placeholder', errors.columnNA);
         }
         else if (!settings.data && !settings.ajax) {
-            el.ddTextbox.attr('placeholder', errors.dataNA);
+            el.$ddTextbox.attr('placeholder', errors.dataNA);
         }
         
         // append div after the textbox
-        this.after(el.ddDiv);
+        this.after(el.$ddDiv);
 
         // hide the current text box (used for stroing the values)
         this.hide();
 
         // append table after the new textbox
-        el.ddDiv.append(el.ddTable);
-        el.ddTable.attr('cellspacing', '0');
+        el.$ddDiv.append(el.$ddTable);
+        el.$ddTable.attr('cellspacing', '0');
 
         // append table caption
-        el.ddTable.append(el.ddTableCaption);
+        el.$ddTable.append(el.$ddTableCaption);
 
         // create table columns
         var $thead = $('<thead><tr></tr></thead>'),
@@ -150,33 +144,20 @@
                $tr.append($th);
             }
         }
-        el.ddTable.append($thead);
+        el.$ddTable.append($thead);
 
         // assign data fields to the textbox, helpful in case of .net postbacks
-        {
-            var id = '', text = '';
-
-            if (this.val()) {
-                var val = this.val().split('#$#');
-                id = val[0];
-                text = val[1];
-            }
-
-            el.ddTextbox.attr('data-id', id);
-            el.ddTextbox.attr('data-text', text);
-            el.ddTextbox.val(text);
-        }
-
-        if (focused) {
-            el.ddTextbox.focus();
-        }
-
-        // event handlers
+       {
+          var id = this.val(),
+             text = this.data('text') || id;
+          id && el.$ddTextbox.val(text);
+       }
+        focused && el.$ddTextbox.focus();
 
         // autocomplete key press
-        el.ddTextbox.keyup(function (e) {
+        el.$ddTextbox.keyup(function (e) {
             //return if up/down/return key
-            if ((e.keyCode < 46 || e.keyCode > 105) && (e.keyCode != keys.BACKSPACE)) {
+            if ((e.keyCode < 46 || e.keyCode > 105) && (e.keyCode !== keys.BACKSPACE)) {
                 e.preventDefault();
                 return;
             }
@@ -189,15 +170,15 @@
         // process input
         function processInput()
         {
-            if (!el.ddTextbox.val()) {
+            if (!el.$ddTextbox.val()) {
                  hideDropDown();
                  return;
             }
 
             // hide no record found message
-            el.ddTableCaption.hide();
+            el.$ddTableCaption.hide();
 
-            el.ddTextbox.addClass('loading');
+            el.$ddTextbox.addClass('loading');
 
             if (settings.ajax)
             {
@@ -218,7 +199,7 @@
                     url: settings.ajax.url,
                     success: ajaxData,
                     error: function (xhr, ajaxOptions, thrownError) {
-                        el.ddTextbox.removeClass('loading');
+                        el.$ddTextbox.removeClass('loading');
                         alert('Error: ' + xhr.status || ' - ' || thrownError);
                     }
                 });
@@ -245,7 +226,7 @@
         }
 
         // do not allow special characters
-        el.ddTextbox.keypress(function (event) {
+        el.$ddTextbox.keypress(function (event) {
             var regex = new RegExp(settings.regex);
             var key = String.fromCharCode(!event.charCode ? event.which : event.charCode);
 
@@ -256,76 +237,66 @@
         });
 
         // textbox keypress events (return key, up and down arrow)
-        el.ddTextbox.keydown(function (e) {
+        el.$ddTextbox.keydown(function (e) {
 
-            var tbody = el.ddTable.find('tbody');
+            var tbody = el.$ddTable.find('tbody');
             var selected = tbody.find('.selected');
 
-            if (e.keyCode == keys.ENTER) {
+            if (e.keyCode === keys.ENTER) {
                 e.preventDefault();
                 select();
             }
-            if (e.keyCode == keys.UP) {
-                el.ddTable.find('.selected').removeClass('selected');
-                if (selected.prev().length == 0) {
+            if (e.keyCode === keys.UP) {
+                el.$ddTable.find('.selected').removeClass('selected');
+                if (selected.prev().length === 0) {
                     tbody.find('tr:last').addClass('selected');
                 } else {
                     selected.prev().addClass('selected');
                 }
             }
-            if (e.keyCode == keys.DOWN) {
+            if (e.keyCode === keys.DOWN) {
                 tbody.find('.selected').removeClass('selected');
-                if (selected.next().length == 0) {
+                if (selected.next().length === 0) {
                     tbody.find('tr:first').addClass('selected');
                 } else {
-                    el.ddTable.find('.selected').removeClass('selected');
+                    el.$ddTable.find('.selected').removeClass('selected');
                     selected.next().addClass('selected');
                 }
             }
         });
 
         // row click event
-        el.ddTable.delegate('tr', 'mousedown', function () {
-            el.ddTable.find('.selected').removeClass('selected');
+        el.$ddTable.delegate('tr', 'mousedown', function () {
+            el.$ddTable.find('.selected').removeClass('selected');
             $(this).addClass('selected');
             select();
         });
 
         // textbox blur event
-        el.ddTextbox.focusout(function () {
+        el.$ddTextbox.focusout(function () {
             hideDropDown();
-            // clear if the text value is invalid 
-            if ($(this).val() !== $(this).data('text')) {
-
-                var change = !!$(this).data('text');
-
-                $(this).data('text', '');
-                $(this).data('id', '');
+            // clear if the text value is invalid
+           var text = selectedData[settings.textField];
+            if ($(this).val() !== text) {
                 $(this).val('');
-                orginalTextBox.val('');
-
-                change && onChange();
+                $orginalTextBox.val('');
+                text && onChange();
             }
         });
 
         function select() {
 
-            var selected = el.ddTable.find('tbody').find('.selected'),
-               obj = selected.data('tvalue');
+            var $selected = el.$ddTable.find('tbody').find('.selected');
+            selectedData = $selected.data('tvalue');
 
-            el.ddTextbox.data('id', selected.find('td').eq(0).text());
-            el.ddTextbox.data('text', selected.find('td').eq(1).text());
+            var id = selectedData[settings.idField],
+               text = selectedData[settings.textField];
 
-            for(var i=0; i < cols; i++)
-            {
-                selectedData[settings.columns[i].field] = selected.find('td').eq(i).text();
-            }
-            
-            el.ddTextbox.val(selected.find('td').eq(1).text());
-            orginalTextBox.val(selected.find('td').eq(0).text() + '#$#' + selected.find('td').eq(1).text());
+            el.$ddTextbox.val(text);
+            $orginalTextBox.val(id);
             hideDropDown();
             onChange();
-            el.ddTextbox.focus();
+            el.$ddTextbox.focus();
         }
 
         function onChange()
@@ -340,50 +311,50 @@
         }
 
         function hideDropDown() {
-            el.ddTable.hide();
-            el.ddTextbox.removeClass('inputfocus');
-            el.ddDiv.removeClass('highlight');
-            el.ddTableCaption.hide();
+            el.$ddTable.hide();
+            el.$ddTextbox.removeClass('inputfocus');
+            el.$ddDiv.removeClass('highlight');
+            el.$ddTableCaption.hide();
         }
 
         function showDropDown() {
 
-            var cssTop = (el.ddTextbox.height() + 20) + 'px 1px 0px 1px';
-            var cssBottom = '1px 1px ' + (el.ddTextbox.height() + 20) + 'px 1px';
+            var cssTop = (el.$ddTextbox.height() + 20) + 'px 1px 0px 1px';
+            var cssBottom = '1px 1px ' + (el.$ddTextbox.height() + 20) + 'px 1px';
 
             // reset div top, left and margin
-            el.ddDiv.css('top', '0px');
-            el.ddDiv.css('left', '0px');
-            el.ddTable.css('margin', cssTop);
+            el.$ddDiv.css('top', '0px');
+            el.$ddDiv.css('left', '0px');
+            el.$ddTable.css('margin', cssTop);
 
-            el.ddTextbox.addClass('inputfocus');
-            el.ddDiv.addClass('highlight');
-            el.ddTable.show();
+            el.$ddTextbox.addClass('inputfocus');
+            el.$ddDiv.addClass('highlight');
+            el.$ddTable.show();
 
             // adjust div top according to the visibility
-            if (!isDivHeightVisible(el.ddDiv)) {
-                el.ddDiv.css('top', -1 * (el.ddTable.height()) + 'px');
-                el.ddTable.css('margin', cssBottom);
-                if (!isDivHeightVisible(el.ddDiv)) {
-                    el.ddDiv.css('top', '0px');
-                    el.ddTable.css('margin', cssTop);
+            if (!isDivHeightVisible(el.$ddDiv)) {
+                el.$ddDiv.css('top', -1 * (el.$ddTable.height()) + 'px');
+                el.$ddTable.css('margin', cssBottom);
+                if (!isDivHeightVisible(el.$ddDiv)) {
+                    el.$ddDiv.css('top', '0px');
+                    el.$ddTable.css('margin', cssTop);
                     $('html, body').animate({
-                        scrollTop: (el.ddDiv.offset().top - 60)
+                        scrollTop: (el.$ddDiv.offset().top - 60)
                     }, 250);
                 }
             }
             // adjust div left according to the visibility
-            if (!isDivWidthVisible(el.ddDiv)) {
-                el.ddDiv.css('left', '-' + (el.ddTable.width() - el.ddTextbox.width() - 20) + 'px');
+            if (!isDivWidthVisible(el.$ddDiv)) {
+                el.$ddDiv.css('left', '-' + (el.$ddTable.width() - el.$ddTextbox.width() - 20) + 'px');
             }
         }
         function jsonParser(jsonData) {
             try{
-                el.ddTextbox.removeClass('loading');
-                el.ddTable.find('tbody').remove();
+                el.$ddTextbox.removeClass('loading');
+                el.$ddTable.find('tbody').remove();
 
                 var highlight = !!settings.highlight,
-                    re = new RegExp(el.ddTextbox.val(),'gi'),
+                    re = new RegExp(el.$ddTextbox.val(),'gi'),
                     i = 0, j = 0,
                     len = jsonData && jsonData.length ? jsonData.length: 0,
                     cell, $tr, $td;
@@ -399,21 +370,21 @@
                      for(j = 0; j < cols; j++){
                          cell = obj[settings.columns[j].field] || '&nbsp;';
                          cell += '';
-                         highlight && (cell = cell.replace(re, '<span class="' + settings.highlight + '">$&</span>'));
+                         highlight && settings.columns[j].highlight && (cell = cell.replace(re, '<span class="' + settings.highlight + '">$&</span>'));
                          $td = $('<td>' + cell + '</td>');
                          settings.columns[j].hide && $td.hide();
                          $tr.append($td);
                      }
 
-                     if(i===0){el.ddTable.append('<tbody></tbody>');}
+                     if(i===0){el.$ddTable.append('<tbody></tbody>');}
                      $tr.data('tvalue', obj);
-                     el.ddTable.find('tbody').append($tr);
+                     el.$ddTable.find('tbody').append($tr);
                  }
 
                 // show no records exists
-                len === 0 && el.ddTableCaption.show();
+                len === 0 && el.$ddTableCaption.show();
 
-                el.ddTable.find('tbody').find('tr:first').addClass('selected');
+                el.$ddTable.find('tbody').find('tr:first').addClass('selected');
                 showDropDown();
             }
             catch (e)
@@ -421,6 +392,7 @@
                 alert('Error: ' + e);
             }
         }
+
         return tautocomplete;
     };
 
