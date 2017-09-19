@@ -55,7 +55,7 @@
         // plugin properties
         var tautocomplete = {
             id: function (val) {
-               if(val){
+               if(val !== null && val !== undefined){
                   $orginalTextBox.val(val);
                   selectedData = selectedData || {};
                   selectedData[settings.idField] = val;
@@ -63,7 +63,7 @@
                return selectedData[settings.idField];
             },
             text: function (val) {
-               if(val){
+               if(val !== null && val !== undefined){
                   el.$ddTextbox.val(val);
                   selectedData = selectedData || {};
                   selectedData[settings.textField] = val;
