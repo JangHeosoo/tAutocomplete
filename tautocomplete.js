@@ -108,7 +108,13 @@
         el.$ddTextbox.attr('autocomplete', 'off');
         el.$ddTextbox.css('width', this.width + 'px');
         el.$ddTextbox.css('font-size', this.css('font-size'));
-        el.$ddTextbox.attr('placeholder', settings.placeholder);
+        if($.isFunction(settings.translator)){
+            settings.translator(settings.placeholder).then(function(message){
+               el.$ddTextbox.attr('placeholder', message);
+            });
+        }else{
+           el.$ddTextbox.attr('placeholder', settings.placeholder);
+        }
 
         // check for mandatory parameters
         if (!settings.columns) {
